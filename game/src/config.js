@@ -60,9 +60,9 @@ export const TUNE = {
   decoyCost: 5,
   decoyCooldown: 4.5,
   decoyDistract: 1.8,
-  farmerStartGap: 13,
+  farmerStartGap: 11,
   farmerMaxGap: 26,
-  farmerBase: 6.6,
+  farmerBase: 6.8,
   farmerSprintAdd: 2.4,
   sprintTime: 2.6,
   spotRise: 0.85, // meter per second in the beam

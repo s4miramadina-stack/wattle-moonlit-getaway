@@ -9,27 +9,41 @@ import { drawHud } from './render/hud.js';
 import { drawTitle, drawPause, drawEnd, drawEndTableau } from './render/screens.js';
 import { buildShot } from './shots.js';
 import { sfx, startMusic, stopMusic, toggleMute } from './audio.js';
+import { dailyMoon } from './world/medals.js';
 
 const STEP = 1 / 60;
 const canvas = document.getElementById('screen');
 const ctx = canvas.getContext('2d');
 const input = createInput(canvas, VIEW_W, VIEW_H);
 
-const game = { screen: 'title', run: null, t: 0, best: loadBest() };
+const moon = dailyMoon();
+const game = { screen: 'title', run: null, t: 0, best: loadBest(), moon, dailyBest: loadDaily(moon.day), mode: 'daily' };
+
+function loadDaily(day) {
+  try { return Number(window.localStorage.getItem(`wattle.daily.${day}`)) || 0; } catch { return 0; }
+}
 
 function loadBest() {
   try { return Number(window.localStorage.getItem('wattle.best')) || 0; } catch { return 0; }
 }
 function saveBest(score) {
   game.best = Math.max(game.best, Math.floor(score));
-  try { window.localStorage.setItem('wattle.best', String(game.best)); } catch { /* private mode */ }
+  if (game.mode === 'daily') game.dailyBest = Math.max(game.dailyBest, Math.floor(score));
+  try {
+    window.localStorage.setItem('wattle.best', String(game.best));
+    window.localStorage.setItem(`wattle.daily.${game.moon.day}`, String(game.dailyBest));
+  } catch { /* private mode */ }
 }
 
-function startRun() {
+// Daily Moon: the same course for everyone today. A new night (N) rolls a random course.
+function startRun(mode = game.mode) {
+  game.mode = mode;
   sfx.unlock();
   sfx.gobble();
   startMusic();
-  game.run = createRun((Date.now() ^ 0x5bd1e995) >>> 0);
+  const seed = mode === 'daily' ? game.moon.seed : (Date.now() ^ 0x5bd1e995) >>> 0;
+  game.run = createRun(seed, mode);
+  game.run.moonDay = game.moon.day;
   game.screen = 'play';
 }
 
@@ -38,7 +52,8 @@ function update(dt) {
   const go = input.wasPressed('confirm') || input.mouse.clicked;
   if (input.wasPressed('mute')) toggleMute();
   if (game.screen === 'title') {
-    if (go || input.wasPressed('jump')) startRun();
+    if (input.wasPressed('newNight')) startRun('free');
+    else if (go || input.wasPressed('jump')) startRun('daily');
   } else if (game.screen === 'pause') {
     if (input.wasPressed('pause') || go) game.screen = 'play';
     if (input.wasPressed('restart')) startRun();
@@ -63,18 +78,19 @@ function update(dt) {
     }
   } else if (game.screen === 'end') {
     stepRun(game.run, dt, {});
-    if (game.run.endT > 0.8 && (go || input.wasPressed('restart'))) startRun();
+    if (game.run.endT > 0.8 && input.wasPressed('newNight')) startRun('free');
+    else if (game.run.endT > 0.8 && (go || input.wasPressed('restart'))) startRun();
   }
 }
 
 function render() {
   if (game.screen === 'title') {
-    drawTitle(ctx, game.t, game.best);
+    drawTitle(ctx, game.t, game.best, game.moon, game.dailyBest);
     return;
   }
   if (game.screen === 'end') {
     drawEndTableau(ctx, game.run);
-    drawEnd(ctx, game.run, game.best);
+    drawEnd(ctx, game.run, game.best, game.dailyBest);
     return;
   }
   drawWorld(ctx, game.run);
@@ -102,6 +118,7 @@ function loop() {
 const params = new URLSearchParams(window.location.search);
 const shot = params.get('shot');
 if (shot) {
+  game.moon = { ...game.moon, day: 331 };
   const scene = buildShot(shot, Number(params.get('seed')) || 1);
   game.screen = scene.screen;
   game.run = scene.run || null;

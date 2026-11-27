@@ -7,6 +7,7 @@ import { drawFarmer, drawBeam } from '../art/farmer.js';
 import { drawHazard, makeHazard } from '../world/hazards.js';
 import { drawCorn } from '../world/pickups.js';
 import { speechBubble } from './scene.js';
+import { drawMedal, MEDAL_STYLE } from '../world/medals.js';
 
 function titleText(ctx, text, x, y, size, fill, glow) {
   ctx.font = `bold ${size}px ${FONT_TITLE}`;
@@ -53,7 +54,7 @@ function card(ctx, x, y, w, h) {
 
 const TITLE_OVEN = makeHazard('oven', 0, null);
 
-export function drawTitle(ctx, t, best) {
+export function drawTitle(ctx, t, best, moon = { day: 1 }, dailyBest = 0) {
   drawBackdrop(ctx, 'patch', t * 60, t);
   ctx.fillStyle = 'rgba(10,12,36,0.3)';
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -78,7 +79,7 @@ export function drawTitle(ctx, t, best) {
 
   // the three stages of the night, with the oven and the carving knives waiting at the end
   const cx = VIEW_W / 2;
-  card(ctx, cx - 330, 268, 660, 150);
+  card(ctx, cx - 390, 266, 780, 178);
   const icons = [['1', STAGES[0].short, PAL.pumpkin], ['2', STAGES[1].short, PAL.hay], ['3', STAGES[2].short, PAL.cranberry]];
   icons.forEach(([n, name, col], i) => {
     const x = cx - 220 + i * 220;
@@ -93,12 +94,24 @@ export function drawTitle(ctx, t, best) {
     ctx.font = `bold 17px ${FONT_UI}`;
     ctx.fillText(name, x, 340);
   });
-  ctx.fillStyle = 'rgba(255,244,220,0.75)';
-  ctx.font = `15px ${FONT_UI}`;
-  ctx.fillText('dodge the lantern  ·  jump the pumpkins  ·  hide in the hay  ·  outrun the oven & the carving knife', cx, 372);
+  // a medal for every stage: how cleanly Wattle got through it
+  const legend = [['gold', 'no feather lost, never spotted'], ['silver', 'no feather lost'], ['bronze', 'made it through']];
+  ctx.font = `bold 14px ${FONT_UI}`;
+  legend.forEach(([m, txt], i) => {
+    const x = cx - 360 + i * 250;
+    drawMedal(ctx, x + 10, 372, 11, m);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = MEDAL_STYLE[m].fill;
+    ctx.fillText(MEDAL_STYLE[m].label, x + 28, 368);
+    ctx.fillStyle = 'rgba(255,244,220,0.8)';
+    ctx.font = `13px ${FONT_UI}`;
+    ctx.fillText(txt, x + 28, 384);
+    ctx.font = `bold 14px ${FONT_UI}`;
+  });
+  ctx.textAlign = 'center';
   ctx.fillStyle = PAL.frost;
-  ctx.font = `bold 15px ${FONT_UI}`;
-  ctx.fillText('↑/W/Space jump   ↓/S duck & hide   ←/→ pace   Shift feather burst   Mouse click: toss a corn decoy', cx, 400);
+  ctx.font = `bold 13px ${FONT_UI}`;
+  ctx.fillText('↑/W/Space jump  ·  ↓/S duck & hide  ·  ←/→ pace  ·  Shift feather burst  ·  Click: corn decoy', cx, 424);
 
   ctx.save();
   ctx.translate(1205, 0);
@@ -107,11 +120,15 @@ export function drawTitle(ctx, t, best) {
   drawHazard(ctx, TITLE_OVEN, 1205, t);
   ctx.restore();
 
-  button(ctx, cx, 462, 380, 54, 'PRESS ENTER OR CLICK TO RUN', t);
+  button(ctx, cx, 482, 480, 54, `ENTER / CLICK: DAILY MOON #${moon.day}`, t);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,244,220,0.8)';
+  ctx.font = `15px ${FONT_UI}`;
+  ctx.fillText(`Same course for every turkey today  ·  today's best ${dailyBest}  ·  N: roll a new random night`, cx, 528);
   if (best > 0) {
     ctx.fillStyle = PAL.wheat;
-    ctx.font = `bold 16px ${FONT_UI}`;
-    ctx.fillText(`Best escape score: ${best}`, cx, 512);
+    ctx.font = `bold 15px ${FONT_UI}`;
+    ctx.fillText(`Best escape score ever: ${best}`, cx, 552);
   }
 }
 
@@ -138,16 +155,30 @@ function statRows(ctx, run, x, y) {
   rows.forEach(([k, v], i) => {
     ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(255,244,220,0.75)';
-    ctx.fillText(k, x, y + i * 30);
+    ctx.fillText(k, x, y + i * 28);
     ctx.textAlign = 'right';
     ctx.fillStyle = PAL.cream;
     ctx.font = `bold 18px ${FONT_UI}`;
-    ctx.fillText(v, x + 300, y + i * 30);
+    ctx.fillText(v, x + 300, y + i * 28);
     ctx.font = `18px ${FONT_UI}`;
   });
 }
 
-export function drawEnd(ctx, run, best) {
+function medalRow(ctx, run, cx, y) {
+  STAGES.forEach((st, i) => {
+    const x = cx - 200 + i * 200;
+    const m = run.medals[i] || 'none';
+    drawMedal(ctx, x, y, 17, m);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = m === 'none' ? 'rgba(255,244,220,0.45)' : MEDAL_STYLE[m].fill;
+    ctx.font = `bold 13px ${FONT_UI}`;
+    ctx.fillText(st.short.toUpperCase(), x, y + 34);
+    ctx.font = `bold 15px ${FONT_UI}`;
+    ctx.fillText(MEDAL_STYLE[m].label, x, y + 52);
+  });
+}
+
+export function drawEnd(ctx, run, best, dailyBest = 0) {
   const t = run.t;
   const escaped = run.outcome === 'escaped';
   const appear = Math.min(1, run.endT * 2);
@@ -155,34 +186,36 @@ export function drawEnd(ctx, run, best) {
   ctx.fillStyle = escaped ? 'rgba(60,40,90,0.35)' : 'rgba(40,6,16,0.55)';
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
   const cx = VIEW_W / 2;
-  card(ctx, cx - 300, 120, 600, 470);
+  card(ctx, cx - 320, 60, 640, 600);
   if (escaped) {
     ctx.fillStyle = PAL.amberHot;
     ctx.font = `bold 18px ${FONT_UI}`;
     ctx.textAlign = 'center';
-    ctx.fillText('YOU ESCAPED!', cx, 160);
-    titleText(ctx, 'PARDONED AT DAWN', cx, 222, 52, PAL.cream, 'rgba(255,179,71,0.9)');
+    ctx.fillText(run.mode === 'daily' ? `YOU ESCAPED!  ·  DAILY MOON #${run.moonDay}` : 'YOU ESCAPED!', cx, 100);
+    titleText(ctx, 'PARDONED AT DAWN', cx, 158, 52, PAL.cream, 'rgba(255,179,71,0.9)');
     ctx.fillStyle = PAL.frost;
     ctx.font = `18px ${FONT_UI}`;
-    ctx.fillText('Wattle reached the Dawn Woods. No oven tonight, no oven ever.', cx, 256);
+    ctx.fillText('Wattle reached the Dawn Woods. No oven tonight, no oven ever.', cx, 192);
   } else {
     ctx.fillStyle = PAL.danger;
     ctx.font = `bold 18px ${FONT_UI}`;
     ctx.textAlign = 'center';
-    ctx.fillText('CAUGHT!', cx, 160);
-    titleText(ctx, 'ON THE MENU', cx, 222, 58, '#ffd0d0', 'rgba(200,50,75,0.9)');
+    ctx.fillText(run.mode === 'daily' ? `CAUGHT!  ·  DAILY MOON #${run.moonDay}` : 'CAUGHT!', cx, 100);
+    titleText(ctx, 'ON THE MENU', cx, 158, 58, '#ffd0d0', 'rgba(200,50,75,0.9)');
     ctx.fillStyle = PAL.cream;
     ctx.font = `18px ${FONT_UI}`;
-    ctx.fillText(`Farmer Mudge caught Wattle ${Math.max(0, Math.ceil(1220 - run.d))} m from freedom. Into the oven at 350°F...`, cx, 256);
+    ctx.fillText(`Farmer Mudge caught Wattle ${Math.max(0, Math.ceil(1220 - run.d))} m from freedom. Into the oven at 350°F...`, cx, 192);
   }
   ctx.fillStyle = PAL.wheat;
   ctx.font = `bold 44px ${FONT_UI}`;
-  ctx.fillText(String(Math.floor(run.score)), cx, 314);
+  ctx.fillText(String(Math.floor(run.score)), cx, 246);
   ctx.font = `bold 16px ${FONT_UI}`;
   ctx.fillStyle = PAL.frost;
-  ctx.fillText(`RANK: ${rankFor(run.score).toUpperCase()}   ·   BEST ${Math.max(best, Math.floor(run.score))}`, cx, 342);
-  statRows(ctx, run, cx - 150, 380);
-  button(ctx, cx, 560, 420, 50, escaped ? 'ENTER / CLICK: RUN AGAIN' : 'ENTER / CLICK: TRY AGAIN', t);
+  const dayBest = run.mode === 'daily' ? `   ·   TODAY'S BEST ${Math.max(dailyBest, Math.floor(run.score))}` : '';
+  ctx.fillText(`RANK: ${rankFor(run.score).toUpperCase()}   ·   BEST ${Math.max(best, Math.floor(run.score))}${dayBest}`, cx, 274);
+  medalRow(ctx, run, cx, 312);
+  statRows(ctx, run, cx - 150, 400);
+  button(ctx, cx, 610, 580, 50, escaped ? 'ENTER / CLICK: RUN AGAIN  ·  N: NEW NIGHT' : 'ENTER / CLICK: TRY AGAIN  ·  N: NEW NIGHT', t);
   ctx.globalAlpha = 1;
 }
 

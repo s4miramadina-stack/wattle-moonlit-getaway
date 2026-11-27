@@ -36,7 +36,7 @@ export function updateBeam(farmer, dt, targetAngle) {
 
 export function farmerSpeed(farmer, stageIndex, turkeySpeed) {
   if (farmer.state === 'distracted') return 0.6;
-  let v = TUNE.farmerBase + stageIndex * 0.45;
+  let v = TUNE.farmerBase + stageIndex * 0.6;
   if (farmer.state === 'sprint' || farmer.state === 'lunge') v += TUNE.farmerSprintAdd;
   if (farmer.gap > 19) v = Math.max(v, turkeySpeed + 1.4); // he never falls hopelessly behind
   return v;
@@ -81,6 +81,12 @@ export function updateFarmer(farmer, dt, ctx) {
       }
     }
   }
+
+  // he taunts once each time he closes inside arm's reach, so the danger reads before the grab
+  if (farmer.gap < 3.6 && !farmer.closeCall && farmer.state !== 'distracted') {
+    farmer.closeCall = true;
+    say(farmer, ctx.rng.pick(['I can TASTE the stuffing!', 'Gotcha now, Wattle!', 'Hold STILL, bird!']), 1.6);
+  } else if (farmer.gap > 6) farmer.closeCall = false;
 
   if (farmer.gap <= 1.6 && farmer.state !== 'distracted') {
     farmer.state = 'lunge';

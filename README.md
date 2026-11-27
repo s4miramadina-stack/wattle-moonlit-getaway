@@ -18,6 +18,13 @@ Farmhouse Kitchen, where the ovens flare and the carving knives hang low, to the
   knife racks and smokehouse beams force a duck, and the farmer hurls carving knives with a
   telegraphed "HYAH!" and a red lane warning: duck the high ones, jump the low ones.
 - **Feather Burst** (Shift) smashes through anything for a moment; golden feathers mend a life.
+- **Daily Moon + stage medals.** Enter starts today's Daily Moon: one course per UTC day, the same
+  for every player, with today's best kept apart from your all-time best (N rolls a random night).
+  Each stage earns a medal: gold for no feather lost and never caught in full light, silver for no
+  feather lost, bronze for getting through. Medals show on the stage map, flash as you cross into
+  the next stage, score bonus points and line up on the ending card.
+- **The farmer's breath.** Inside a few metres the screen edge reddens, a heartbeat quickens and
+  Mudge taunts you before he lunges; he gets faster in each stage.
 - Three lives, a score with close-shave, hide and oven bonuses, ranks from *Drumstick Pending* to
   *Presidential Pardon*, two endings (**ON THE MENU** or **PARDONED AT DAWN**) and instant restart.
 

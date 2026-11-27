@@ -11,6 +11,7 @@ const KEYMAP = {
   KeyP: 'pause', Escape: 'pause',
   KeyM: 'mute',
   KeyR: 'restart',
+  KeyN: 'newNight',
 };
 
 export function createInput(canvas, viewW, viewH) {

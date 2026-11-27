@@ -9,6 +9,13 @@ import { ovenFlaming, OVEN_CYCLE } from './world/hazards.js';
 
 const STEP = 1 / 60;
 
+// screenshot runs are Daily Moon runs, pinned to day 331 so the pictures never drift
+function daily(seed) {
+  const run = createRun(seed, 'daily');
+  run.moonDay = 331;
+  return run;
+}
+
 export function autopilot(run) {
   const c = { left: false, right: false, jumpHeld: false, jumpPressed: false, duck: false, dashPressed: false };
   for (const h of run.hazards) {
@@ -45,6 +52,8 @@ function simulate(run, seconds, { untilM = Infinity, keepLives = false } = {}) {
   const steps = Math.round(seconds / STEP);
   for (let i = 0; i < steps && run.d < untilM && !run.outcome; i++) {
     if (keepLives) run.lives = Math.max(run.lives, 2);
+    // a sensible player spends corn when the lantern is on them or the farmer is close
+    if ((run.spotted > 0.55 || run.farmer.gap < 4) && run.farmer.state !== 'distracted') tossDecoy(run, TURKEY_X - 260);
     stepRun(run, STEP, autopilot(run));
   }
   return run;
@@ -53,7 +62,7 @@ function simulate(run, seconds, { untilM = Infinity, keepLives = false } = {}) {
 export function buildShot(name, seed) {
   if (name === 'title') return { screen: 'title', t: 4.2 };
   if (name === 'run') {
-    const run = createRun(seed);
+    const run = daily(seed);
     simulate(run, 26, { keepLives: true });
     run.corn = Math.max(run.corn, 7);
     run.decoyCooldown = 0;
@@ -62,7 +71,7 @@ export function buildShot(name, seed) {
     return { screen: 'play', run };
   }
   if (name === 'danger') {
-    const run = createRun(seed);
+    const run = daily(seed);
     simulate(run, 140, { untilM: 900, keepLives: true });
     // stand Wattle just before the next oven of the kitchen, its flame up, a knife on its way
     const oven = run.hazards.find((h) => h.kind === 'oven' && h.m > run.d + 6);
@@ -78,6 +87,7 @@ export function buildShot(name, seed) {
     run.spotted = 0.93;
     run.inBeam = true;
     run.farmer.gap = 4.1;
+    run.heat = 0.85; // the farmer's breath: red vignette + heartbeat
     run.farmer.state = 'sprint';
     run.farmer.sprintLeft = 2;
     run.farmer.beamAngle = -0.12;
@@ -97,7 +107,7 @@ export function buildShot(name, seed) {
     return { screen: 'play', run };
   }
   // end: a whole run played through to the Dawn Woods
-  const run = createRun(seed);
+  const run = daily(seed);
   simulate(run, 400, { keepLives: true });
   if (!run.outcome) {
     run.d = TOTAL_LENGTH;

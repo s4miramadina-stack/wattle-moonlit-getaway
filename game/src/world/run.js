@@ -10,17 +10,18 @@ import { createFarmer, updateFarmer, updateBeam, spotWattle, lureWithCorn, shove
 import { lanternPoint } from '../art/farmer.js';
 import { createParticles, burst, popText, updateParticles } from '../fx/particles.js';
 import { sfx } from '../audio.js';
+import { medalFor, newStageLog, medalPoints } from './medals.js';
 
 export const FARMER_PX_PER_M = 32;
 export const BEAM_REACH = 780;
 export const BEAM_SPREAD = 0.17;
 export const KNIFE_SPEED = 640; // px per second across the screen
 
-export function createRun(seed) {
+export function createRun(seed, mode = 'free') {
   const rng = makeRng(seed);
   const course = buildCourse(rng);
   return {
-    seed, rng, ...course,
+    seed, mode, rng, ...course,
     t: 0, d: 0, speed: TUNE.baseSpeed,
     ty: 0, vy: 0, onGround: true, jumpHold: 0, ducking: false, hidden: false,
     lives: TUNE.lives, invuln: 0, stun: 0, slip: 0,
@@ -32,6 +33,8 @@ export function createRun(seed) {
     fx: createParticles(),
     stageIndex: 0, banner: 3, shake: 0,
     stats: { corn: 0, nearMisses: 0, hides: 0, decoys: 0, hits: 0, ovens: 0 },
+    medals: [], stageLog: newStageLog(), medalFlash: 0, medalLast: null,
+    heat: 0, // 0..1: how close the farmer's breath is; drives the red vignette and heartbeat
     outcome: null, endT: 0,
   };
 }
@@ -67,6 +70,7 @@ export function beamOrigin(run) {
 function loseLife(run, why) {
   run.lives -= 1;
   run.stats.hits += 1;
+  run.stageLog.hits += 1;
   run.invuln = TUNE.hurtInvuln;
   run.stun = TUNE.stunTime;
   run.shake = 0.35;
@@ -76,11 +80,23 @@ function loseLife(run, why) {
   if (run.lives <= 0) endRun(run, 'caught');
 }
 
+// A stage is behind Wattle: its medal is decided by the log of hits and sightings in it.
+function awardMedal(run) {
+  const medal = medalFor(run.stageLog);
+  run.medals.push(medal);
+  run.score += medalPoints(medal);
+  run.medalLast = medal;
+  run.medalFlash = 2.2;
+  run.stageLog = newStageLog();
+  sfx.medal(medal);
+}
+
 function endRun(run, outcome) {
   if (run.outcome) return;
   run.outcome = outcome;
   run.endT = 0;
   if (outcome === 'escaped') {
+    awardMedal(run);
     run.score += 1000 + run.lives * 300;
     sfx.escaped();
   } else {
@@ -113,6 +129,7 @@ export function stepRun(run, dt, controls) {
   run.slip = Math.max(0, run.slip - dt);
   run.shake = Math.max(0, run.shake - dt);
   run.banner = Math.max(0, run.banner - dt);
+  run.medalFlash = Math.max(0, run.medalFlash - dt);
   run.decoyCooldown = Math.max(0, run.decoyCooldown - dt);
   run.dashMeter = Math.min(1, run.dashMeter + dt * 0.09);
 
@@ -168,6 +185,7 @@ export function stepRun(run, dt, controls) {
   // speed
   const stage = stageAt(run.d);
   if (stage.index !== run.stageIndex) {
+    awardMedal(run);
     run.stageIndex = stage.index;
     run.banner = 2.6;
     sfx.stage();
@@ -197,6 +215,7 @@ export function stepRun(run, dt, controls) {
   run.spotted = Math.max(0, Math.min(1, run.spotted));
   if (run.spotted >= 1 && f.state !== 'sprint' && f.state !== 'lunge') {
     spotWattle(f);
+    run.stageLog.sightings += 1;
     sfx.spotted();
     run.spottedFlash = 1;
     popText(run.fx, TURKEY_X, GROUND_Y - 200, 'SPOTTED!', '#ff4d5e', 34);
@@ -222,6 +241,17 @@ export function stepRun(run, dt, controls) {
     }
   }
   run.warnings = run.warnings.filter((w) => (w.life -= dt) > 0);
+
+  // the farmer's breath: inside 6 m the screen reddens and a heartbeat speeds up
+  const heatTarget = f.state === 'distracted' ? 0 : Math.max(0, Math.min(1, (6 - f.gap) / 4.4));
+  run.heat += (heatTarget - run.heat) * Math.min(1, dt * 5);
+  if (run.heat > 0.15) {
+    run.beatT = (run.beatT || 0) - dt;
+    if (run.beatT <= 0) {
+      sfx.heartbeat(run.heat);
+      run.beatT = 0.95 - run.heat * 0.55;
+    }
+  }
 
   // thrown knives fly right relative to the scrolling world
   for (const k of run.knives) {

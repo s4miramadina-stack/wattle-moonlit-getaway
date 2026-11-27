@@ -77,6 +77,14 @@ export const sfx = {
   nearMiss() { tone(1500, 0.07, { type: 'sine', vol: 0.08 }); tone(1900, 0.09, { type: 'sine', vol: 0.07, delay: 0.06 }); },
   stage() { [392, 494, 587, 784].forEach((f, i) => tone(f, 0.2, { type: 'triangle', vol: 0.14, delay: i * 0.1 })); },
   caught() { [392, 349, 311, 262].forEach((f, i) => tone(f, 0.35, { type: 'sawtooth', vol: 0.13, delay: i * 0.22 })); },
+  medal(kind) {
+    const top = kind === 'gold' ? [784, 988, 1175, 1568] : kind === 'silver' ? [659, 784, 988] : [523, 659];
+    top.forEach((f, i) => tone(f, 0.16, { type: 'triangle', vol: 0.12, delay: i * 0.08 }));
+  },
+  heartbeat(heat) {
+    tone(70, 0.09, { type: 'sine', vol: 0.12 + heat * 0.22 });
+    tone(62, 0.11, { type: 'sine', vol: 0.1 + heat * 0.18, delay: 0.16 });
+  },
   escaped() { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0.22, { type: 'triangle', vol: 0.15, delay: i * 0.12 })); },
 };
 

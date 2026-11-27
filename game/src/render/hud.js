@@ -4,6 +4,7 @@
 import { PAL, VIEW_W, STAGES, TOTAL_LENGTH, TUNE, FONT_UI, FONT_TITLE } from '../config.js';
 import { metresLeft } from '../world/run.js';
 import { isMuted } from '../audio.js';
+import { drawMedal, MEDAL_STYLE } from '../world/medals.js';
 
 function panel(ctx, x, y, w, h) {
   ctx.fillStyle = 'rgba(11,15,36,0.78)';
@@ -44,8 +45,26 @@ function featherIcon(ctx, x, y, full) {
   ctx.restore();
 }
 
+// Red breath at the screen edge while the farmer is within a few metres.
+function drawHeat(ctx, run) {
+  if (run.heat < 0.05) return;
+  const pulse = 0.75 + 0.25 * Math.sin(run.t * (6 + run.heat * 8));
+  const g = ctx.createRadialGradient(VIEW_W / 2, 380, 260, VIEW_W / 2, 380, 780);
+  g.addColorStop(0, 'rgba(200,30,50,0)');
+  g.addColorStop(1, `rgba(200,30,50,${(0.55 * run.heat * pulse).toFixed(3)})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, VIEW_W, 720);
+  if (run.heat > 0.6) {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = `rgba(255,208,208,${(0.6 + 0.4 * pulse).toFixed(3)})`;
+    ctx.font = `bold 22px ${FONT_UI}`;
+    ctx.fillText("HE'S RIGHT BEHIND YOU!", 24, 140);
+  }
+}
+
 export function drawHud(ctx, run) {
   ctx.textBaseline = 'alphabetic';
+  drawHeat(ctx, run);
   // score + feathers (left)
   panel(ctx, 16, 14, 280, 92);
   ctx.textAlign = 'left';
@@ -83,6 +102,7 @@ export function drawHud(ctx, run) {
     ctx.fillStyle = i === run.stageIndex ? PAL.cream : 'rgba(255,244,220,0.55)';
     ctx.font = `bold 12px ${FONT_UI}`;
     ctx.fillText(s.short.toUpperCase(), x + w / 2, 94);
+    if (run.medals[i]) drawMedal(ctx, x + w - 10, 68, 9, run.medals[i]);
     s0 += s.length;
   });
   const px = mx + Math.min(1, run.d / TOTAL_LENGTH) * mw;
@@ -131,6 +151,28 @@ export function drawHud(ctx, run) {
   ctx.fillStyle = 'rgba(255,244,220,0.55)';
   ctx.font = `13px ${FONT_UI}`;
   ctx.fillText(`←/→ pace  ↑ jump  ↓ duck/hide  P pause  M ${isMuted() ? 'unmute' : 'mute'}`, VIEW_W - 20, 700);
+
+  // the medal just earned for the stage left behind
+  if (run.medalFlash > 0 && run.medalLast && !run.outcome) {
+    const a = Math.min(1, run.medalFlash * 1.4);
+    ctx.globalAlpha = a;
+    const st = MEDAL_STYLE[run.medalLast];
+    drawMedal(ctx, VIEW_W / 2 - 150, 290, 26, run.medalLast);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = st.fill;
+    ctx.font = `bold 26px ${FONT_UI}`;
+    ctx.fillText(`${st.label} MEDAL`, VIEW_W / 2 - 112, 286);
+    ctx.fillStyle = PAL.cream;
+    ctx.font = `15px ${FONT_UI}`;
+    ctx.fillText(run.medalLast === 'gold' ? 'no feather lost, never caught in the light' : run.medalLast === 'silver' ? 'no feather lost' : 'made it through', VIEW_W / 2 - 112, 308);
+    ctx.globalAlpha = 1;
+  }
+  if (run.mode === 'daily') {
+    ctx.textAlign = 'right';
+    ctx.fillStyle = PAL.frost;
+    ctx.font = `bold 13px ${FONT_UI}`;
+    ctx.fillText(`DAILY MOON #${run.moonDay}`, VIEW_W - 20, 128);
+  }
 
   // stage title card
   if (run.banner > 0 && !run.outcome) {
