@@ -66,7 +66,7 @@ export function drawWorld(ctx, run) {
   }
 
   // night dims everything outside the lanterns
-  ctx.fillStyle = run.stageIndex === 2 ? 'rgba(10,12,36,0.18)' : 'rgba(10,12,36,0.32)';
+  ctx.fillStyle = `rgba(10,12,36,${STAGES[run.stageIndex].dim})`;
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
   const fx = farmerScreenX(run);

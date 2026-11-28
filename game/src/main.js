@@ -78,7 +78,8 @@ function update(dt) {
     }
   } else if (game.screen === 'end') {
     stepRun(game.run, dt, {});
-    if (game.run.endT > 0.8 && input.wasPressed('newNight')) startRun('free');
+    if (game.run.endT > 0.8 && input.wasPressed('pause')) game.screen = 'title';
+    else if (game.run.endT > 0.8 && input.wasPressed('newNight')) startRun('free');
     else if (game.run.endT > 0.8 && (go || input.wasPressed('restart'))) startRun();
   }
 }

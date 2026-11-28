@@ -1,6 +1,6 @@
 // The title card, the pause card and the two endings: ON THE MENU (caught) or PARDONED AT DAWN.
 
-import { PAL, VIEW_W, VIEW_H, GROUND_Y, FONT_TITLE, FONT_UI, STAGES, rankFor } from '../config.js';
+import { PAL, VIEW_W, VIEW_H, GROUND_Y, FONT_TITLE, FONT_UI, STAGES, TOTAL_LENGTH, rankFor } from '../config.js';
 import { drawBackdrop } from '../art/scenery.js';
 import { drawTurkey } from '../art/turkey.js';
 import { drawFarmer, drawBeam } from '../art/farmer.js';
@@ -35,7 +35,13 @@ function button(ctx, x, y, w, h, text, t) {
   ctx.stroke();
   ctx.globalAlpha = 1;
   ctx.fillStyle = PAL.cream;
-  ctx.font = `bold 24px ${FONT_UI}`;
+  // shrink the label until it sits inside the pill with room to spare
+  let size = 24;
+  ctx.font = `bold ${size}px ${FONT_UI}`;
+  while (size > 14 && ctx.measureText(text).width > w - 48) {
+    size -= 1;
+    ctx.font = `bold ${size}px ${FONT_UI}`;
+  }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, x, y + 1);
@@ -54,65 +60,42 @@ function card(ctx, x, y, w, h) {
 
 const TITLE_OVEN = makeHazard('oven', 0, null);
 
-export function drawTitle(ctx, t, best, moon = { day: 1 }, dailyBest = 0) {
-  drawBackdrop(ctx, 'patch', t * 60, t);
-  ctx.fillStyle = 'rgba(10,12,36,0.3)';
-  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-  // the chase, as a living tableau: farmer, his lantern, Wattle mid-leap over a pumpkin
-  drawBeam(ctx, { x: 196, y: GROUND_Y - 176 }, -0.12 + Math.sin(t * 1.2) * 0.12, 760, 0.17, false);
-  drawFarmer(ctx, 150, GROUND_Y, { state: 'chase', t });
-  speechBubble(ctx, 150, GROUND_Y - 250, 'Here, turkey turkey...');
-  drawHazard(ctx, makeHazard('pumpkin', 0, null), 1060, t);
-  drawTurkey(ctx, 1065, GROUND_Y - 34 - Math.sin(t * 3) * 6, { pose: 'jump', t, speed: 1, scale: 1.05 });
-  drawCorn(ctx, 900, GROUND_Y - 50, t, 1.2);
-  drawCorn(ctx, 960, GROUND_Y - 90, t + 1, 1.2);
-
-  ctx.fillStyle = PAL.amberHot;
-  ctx.font = `bold 20px ${FONT_UI}`;
-  ctx.textAlign = 'center';
-  ctx.fillText('A THANKSGIVING TURKEY ESCAPE', VIEW_W / 2, 64);
-  titleText(ctx, "WATTLE'S", VIEW_W / 2, 132, 64, PAL.frost, 'rgba(143,211,209,0.8)');
-  titleText(ctx, 'MOONLIT GETAWAY', VIEW_W / 2, 208, 76, PAL.cream, 'rgba(255,179,71,0.9)');
-  ctx.fillStyle = PAL.cream;
-  ctx.font = `20px ${FONT_UI}`;
-  ctx.fillText("Farmer Mudge has preheated the oven. Run 1,220 m through the night and don't become dinner.", VIEW_W / 2, 246);
-
-  // the three stages of the night, with the oven and the carving knives waiting at the end
-  const cx = VIEW_W / 2;
-  card(ctx, cx - 390, 266, 780, 178);
-  const icons = [['1', STAGES[0].short, PAL.pumpkin], ['2', STAGES[1].short, PAL.hay], ['3', STAGES[2].short, PAL.cranberry]];
-  icons.forEach(([n, name, col], i) => {
-    const x = cx - 220 + i * 220;
-    ctx.fillStyle = col;
+// The four stages as a row of numbered chips joined by arrows: coop -> patch -> barn -> kitchen.
+function stageStrip(ctx, cx, y) {
+  const step = 190;
+  STAGES.forEach((st, i) => {
+    const x = cx - step * 1.5 + i * step;
+    if (i > 0) {
+      ctx.fillStyle = 'rgba(255,244,220,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(x - step / 2 - 6, y - 7); ctx.lineTo(x - step / 2 + 6, y); ctx.lineTo(x - step / 2 - 6, y + 7);
+      ctx.fill();
+    }
+    ctx.fillStyle = st.color;
     ctx.beginPath();
-    ctx.arc(x, 300, 16, 0, Math.PI * 2);
+    ctx.arc(x, y, 17, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = PAL.ink;
     ctx.font = `bold 18px ${FONT_UI}`;
-    ctx.fillText(n, x, 306);
+    ctx.textAlign = 'center';
+    ctx.fillText(String(i + 1), x, y + 6);
     ctx.fillStyle = PAL.cream;
-    ctx.font = `bold 17px ${FONT_UI}`;
-    ctx.fillText(name, x, 340);
+    ctx.font = `bold 15px ${FONT_UI}`;
+    ctx.fillText(st.short, x, y + 40);
   });
-  // a medal for every stage: how cleanly Wattle got through it
-  const legend = [['gold', 'no feather lost, never spotted'], ['silver', 'no feather lost'], ['bronze', 'made it through']];
-  ctx.font = `bold 14px ${FONT_UI}`;
-  legend.forEach(([m, txt], i) => {
-    const x = cx - 360 + i * 250;
-    drawMedal(ctx, x + 10, 372, 11, m);
-    ctx.textAlign = 'left';
-    ctx.fillStyle = MEDAL_STYLE[m].fill;
-    ctx.fillText(MEDAL_STYLE[m].label, x + 28, 368);
-    ctx.fillStyle = 'rgba(255,244,220,0.8)';
-    ctx.font = `13px ${FONT_UI}`;
-    ctx.fillText(txt, x + 28, 384);
-    ctx.font = `bold 14px ${FONT_UI}`;
-  });
-  ctx.textAlign = 'center';
-  ctx.fillStyle = PAL.frost;
-  ctx.font = `bold 13px ${FONT_UI}`;
-  ctx.fillText('↑/W/Space jump  ·  ↓/S duck & hide  ·  ←/→ pace  ·  Shift feather burst  ·  Click: corn decoy', cx, 424);
+}
 
+export function drawTitle(ctx, t, best, moon = { day: 1 }, dailyBest = 0) {
+  drawBackdrop(ctx, 'coop', t * 60, t);
+  ctx.fillStyle = 'rgba(10,12,36,0.25)';
+  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  // the chase, as a living tableau: the farmer and his lantern behind, Wattle mid-leap over a fence
+  drawBeam(ctx, { x: 196, y: GROUND_Y - 176 }, -0.1 + Math.sin(t * 1.2) * 0.1, 900, 0.17, false);
+  drawFarmer(ctx, 150, GROUND_Y, { state: 'chase', t });
+  speechBubble(ctx, 128, GROUND_Y - 250, 'Turkey, turkey...');
+  drawHazard(ctx, makeHazard('fence', 0, null), 1075, t);
+  drawTurkey(ctx, 1085, GROUND_Y - 46 - Math.sin(t * 3) * 6, { pose: 'jump', t, speed: 1, scale: 1.1 });
+  drawCorn(ctx, 930, GROUND_Y - 60, t, 1.2);
   ctx.save();
   ctx.translate(1205, 0);
   ctx.scale(0.8, 0.8);
@@ -120,15 +103,52 @@ export function drawTitle(ctx, t, best, moon = { day: 1 }, dailyBest = 0) {
   drawHazard(ctx, TITLE_OVEN, 1205, t);
   ctx.restore();
 
-  button(ctx, cx, 482, 480, 54, `ENTER / CLICK: DAILY MOON #${moon.day}`, t);
+  const cx = VIEW_W / 2;
+  ctx.fillStyle = PAL.amberHot;
+  ctx.font = `bold 20px ${FONT_UI}`;
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255,244,220,0.8)';
+  ctx.fillText('A THANKSGIVING TURKEY ESCAPE', cx, 56);
+  titleText(ctx, "WATTLE'S", cx, 120, 60, PAL.frost, 'rgba(143,211,209,0.8)');
+  titleText(ctx, 'MOONLIT GETAWAY', cx, 194, 74, PAL.cream, 'rgba(255,179,71,0.9)');
+  ctx.fillStyle = PAL.cream;
+  ctx.font = `19px ${FONT_UI}`;
+  ctx.fillText(`Farmer Mudge has preheated the oven. Run ${TOTAL_LENGTH.toLocaleString('en-US')} m from the coop to the woods. Don't become dinner.`, cx, 232);
+
+  // four stages of the night, each harder, each with its own medal
+  card(ctx, cx - 400, 250, 800, 118);
+  stageStrip(ctx, cx, 282);
+  const legend = [['gold', 'never hit, never seen'], ['silver', 'never hit'], ['bronze', 'made it through']];
+  legend.forEach(([m, txt], i) => {
+    const x = cx - 330 + i * 240;
+    drawMedal(ctx, x + 10, 346, 10, m);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = MEDAL_STYLE[m].fill;
+    ctx.font = `bold 14px ${FONT_UI}`;
+    ctx.fillText(MEDAL_STYLE[m].label, x + 26, 351);
+    const lw = ctx.measureText(MEDAL_STYLE[m].label).width;
+    ctx.fillStyle = 'rgba(255,244,220,0.8)';
+    ctx.font = `13px ${FONT_UI}`;
+    ctx.fillText(txt, x + 32 + lw, 351);
+  });
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(11,15,36,0.7)';
+  ctx.beginPath();
+  ctx.roundRect(cx - 360, 380, 720, 30, 15);
+  ctx.fill();
+  ctx.fillStyle = PAL.frost;
+  ctx.font = `bold 14px ${FONT_UI}`;
+  ctx.fillText('↑/W/Space jump  ·  ↓/S duck & hide  ·  ←/→ pace  ·  Shift feather burst  ·  Click: corn decoy', cx, 400);
+
+  button(ctx, cx, 450, 470, 52, `ENTER / CLICK: DAILY MOON #${moon.day}`, t);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,244,220,0.85)';
   ctx.font = `15px ${FONT_UI}`;
-  ctx.fillText(`Same course for every turkey today  ·  today's best ${dailyBest}  ·  N: roll a new random night`, cx, 528);
+  ctx.fillText(`Same course for every turkey today  ·  today's best ${dailyBest}  ·  N: random night`, cx, 494);
   if (best > 0) {
     ctx.fillStyle = PAL.wheat;
     ctx.font = `bold 15px ${FONT_UI}`;
-    ctx.fillText(`Best escape score ever: ${best}`, cx, 552);
+    ctx.fillText(`Best escape score ever: ${best}`, cx, 516);
   }
 }
 
@@ -144,7 +164,7 @@ export function drawPause(ctx) {
 
 function statRows(ctx, run, x, y) {
   const rows = [
-    ['Distance run', `${Math.floor(Math.min(run.d, 1220))} m`],
+    ['Distance run', `${Math.floor(Math.min(run.d, TOTAL_LENGTH))} m`],
     ['Corn gobbled', String(run.stats.corn)],
     ['Close shaves', String(run.stats.nearMisses)],
     ['Ovens cleared', String(run.stats.ovens)],
@@ -166,12 +186,12 @@ function statRows(ctx, run, x, y) {
 
 function medalRow(ctx, run, cx, y) {
   STAGES.forEach((st, i) => {
-    const x = cx - 200 + i * 200;
+    const x = cx - 225 + i * 150;
     const m = run.medals[i] || 'none';
     drawMedal(ctx, x, y, 17, m);
     ctx.textAlign = 'center';
     ctx.fillStyle = m === 'none' ? 'rgba(255,244,220,0.45)' : MEDAL_STYLE[m].fill;
-    ctx.font = `bold 13px ${FONT_UI}`;
+    ctx.font = `bold 12px ${FONT_UI}`;
     ctx.fillText(st.short.toUpperCase(), x, y + 34);
     ctx.font = `bold 15px ${FONT_UI}`;
     ctx.fillText(MEDAL_STYLE[m].label, x, y + 52);
@@ -204,7 +224,7 @@ export function drawEnd(ctx, run, best, dailyBest = 0) {
     titleText(ctx, 'ON THE MENU', cx, 158, 58, '#ffd0d0', 'rgba(200,50,75,0.9)');
     ctx.fillStyle = PAL.cream;
     ctx.font = `18px ${FONT_UI}`;
-    ctx.fillText(`Farmer Mudge caught Wattle ${Math.max(0, Math.ceil(1220 - run.d))} m from freedom. Into the oven at 350°F...`, cx, 192);
+    ctx.fillText(`Farmer Mudge caught Wattle ${Math.max(0, Math.ceil(TOTAL_LENGTH - run.d))} m from freedom. Into the oven at 350°F...`, cx, 192, 580);
   }
   ctx.fillStyle = PAL.wheat;
   ctx.font = `bold 44px ${FONT_UI}`;
@@ -215,7 +235,11 @@ export function drawEnd(ctx, run, best, dailyBest = 0) {
   ctx.fillText(`RANK: ${rankFor(run.score).toUpperCase()}   ·   BEST ${Math.max(best, Math.floor(run.score))}${dayBest}`, cx, 274);
   medalRow(ctx, run, cx, 312);
   statRows(ctx, run, cx - 150, 400);
-  button(ctx, cx, 610, 580, 50, escaped ? 'ENTER / CLICK: RUN AGAIN  ·  N: NEW NIGHT' : 'ENTER / CLICK: TRY AGAIN  ·  N: NEW NIGHT', t);
+  button(ctx, cx, 598, 440, 50, escaped ? 'RUN AGAIN  ·  ENTER / CLICK' : 'TRY AGAIN  ·  ENTER / CLICK', t);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,244,220,0.7)';
+  ctx.font = `14px ${FONT_UI}`;
+  ctx.fillText('N: a new random night  ·  Esc: title', cx, 642);
   ctx.globalAlpha = 1;
 }
 

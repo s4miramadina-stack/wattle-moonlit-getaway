@@ -1,4 +1,4 @@
-// Parallax backdrops for each stage of the night, plus the dawn woods Wattle runs for.
+// Parallax backdrops for each of the four stages of the night, plus the dawn woods Wattle runs for.
 
 import { PAL, VIEW_W, VIEW_H, GROUND_Y } from '../config.js';
 import { hash01 } from '../rng.js';
@@ -135,6 +135,84 @@ function soil(ctx, scroll, top, mid, speck) {
     if (x > VIEW_W) continue;
     ctx.fillRect(x, GROUND_Y + 8 + hash01(i * 7.7) * 100, 10 + hash01(i) * 16, 3);
   }
+}
+
+// Stage 1: the farmyard by moonlight. Wattle's own coop, a red barn on the hill, rail fences, straw.
+function coopHouse(ctx, x, y, t) {
+  ctx.fillStyle = '#7a2a34';
+  ctx.fillRect(x, y - 120, 190, 120);
+  ctx.fillStyle = '#4e1a24';
+  ctx.beginPath();
+  ctx.moveTo(x - 16, y - 116); ctx.lineTo(x + 95, y - 176); ctx.lineTo(x + 206, y - 116);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(11,15,36,0.35)';
+  ctx.lineWidth = 2;
+  for (let i = 1; i < 6; i++) {
+    ctx.beginPath(); ctx.moveTo(x + i * 32, y - 120); ctx.lineTo(x + i * 32, y); ctx.stroke();
+  }
+  // round hatch with sleepy hens peeking out
+  ctx.fillStyle = '#1a1030';
+  ctx.beginPath(); ctx.arc(x + 95, y - 60, 26, 0, Math.PI * 2); ctx.fill();
+  for (let k = 0; k < 2; k++) {
+    const hx = x + 84 + k * 22;
+    const bob = Math.sin(t * 2 + k * 2) * 2;
+    ctx.fillStyle = '#f0e6d2';
+    ctx.beginPath(); ctx.arc(hx, y - 60 + bob, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = PAL.cranberry;
+    ctx.fillRect(hx - 2, y - 72 + bob, 4, 5);
+    ctx.fillStyle = PAL.amber;
+    ctx.beginPath(); ctx.moveTo(hx + 6, y - 61 + bob); ctx.lineTo(hx + 12, y - 59 + bob); ctx.lineTo(hx + 6, y - 57 + bob); ctx.fill();
+  }
+  // the empty perch with Wattle's name plate: he's already gone
+  ctx.fillStyle = PAL.wheat;
+  ctx.fillRect(x + 20, y - 108, 58, 18);
+  ctx.fillStyle = PAL.ink;
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('WATTLE', x + 49, y - 95);
+  // the ramp down to the yard
+  ctx.fillStyle = PAL.wood;
+  ctx.beginPath();
+  ctx.moveTo(x + 150, y - 34); ctx.lineTo(x + 240, y); ctx.lineTo(x + 222, y); ctx.lineTo(x + 150, y - 22);
+  ctx.fill();
+}
+
+function railFence(ctx, scroll, y) {
+  const span = 120;
+  const off = (scroll * 0.7) % span;
+  ctx.fillStyle = '#4a4e6e';
+  for (let i = -1; i < VIEW_W / span + 2; i++) ctx.fillRect(i * span - off, y - 54, 9, 54);
+  ctx.fillRect(0, y - 46, VIEW_W, 6);
+  ctx.fillRect(0, y - 24, VIEW_W, 6);
+}
+
+function drawCoop(ctx, scroll, t) {
+  sky(ctx, PAL.night0, PAL.night1, '#4a3f7e');
+  stars(ctx, scroll, t);
+  drawMoon(ctx, 1010, 130, 58);
+  hills(ctx, scroll, 0.08, 470, 50, '#20285e', 3);
+  // the big red barn and silo up on the hill
+  const bx = ((560 - scroll * 0.1) % 2200 + 2200) % 2200 - 300;
+  ctx.fillStyle = '#5a1e2c';
+  ctx.fillRect(bx, 360, 170, 110);
+  ctx.beginPath();
+  ctx.moveTo(bx - 14, 364); ctx.lineTo(bx + 85, 300); ctx.lineTo(bx + 184, 364);
+  ctx.fill();
+  ctx.strokeStyle = '#e9dcc0';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(bx + 55, 400, 60, 70);
+  ctx.beginPath(); ctx.moveTo(bx + 55, 400); ctx.lineTo(bx + 115, 470); ctx.moveTo(bx + 115, 400); ctx.lineTo(bx + 55, 470); ctx.stroke();
+  ctx.fillStyle = '#3a3f66';
+  ctx.fillRect(bx + 190, 330, 46, 140);
+  ctx.beginPath(); ctx.arc(bx + 213, 330, 23, Math.PI, 0); ctx.fill();
+  hills(ctx, scroll, 0.18, 525, 30, '#182050', 6);
+  railFence(ctx, scroll, 560);
+  const span = 1500;
+  const cx = ((300 - scroll * 0.55) % span + span) % span - 260;
+  coopHouse(ctx, cx, GROUND_Y - 4, t);
+  soil(ctx, scroll, '#3a2e2a', '#1a1414', 'rgba(230,194,122,0.35)');
+  ctx.fillStyle = 'rgba(230,194,122,0.4)';
+  ctx.fillRect(0, GROUND_Y, VIEW_W, 3);
 }
 
 function drawPatch(ctx, scroll, t) {
@@ -324,5 +402,6 @@ export function drawBackdrop(ctx, stageId, scroll, t) {
   if (stageId === 'barn') drawBarn(ctx, scroll, t);
   else if (stageId === 'kitchen') drawKitchen(ctx, scroll, t);
   else if (stageId === 'dawn') drawDawn(ctx, scroll, t);
+  else if (stageId === 'coop') drawCoop(ctx, scroll, t);
   else drawPatch(ctx, scroll, t);
 }

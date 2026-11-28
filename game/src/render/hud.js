@@ -97,11 +97,11 @@ export function drawHud(ctx, run) {
   STAGES.forEach((s, i) => {
     const x = mx + (s0 / TOTAL_LENGTH) * mw;
     const w = (s.length / TOTAL_LENGTH) * mw;
-    ctx.fillStyle = i === run.stageIndex ? [PAL.pumpkin, PAL.hay, PAL.cranberry][i] : 'rgba(255,255,255,0.16)';
+    ctx.fillStyle = i === run.stageIndex ? s.color : 'rgba(255,255,255,0.16)';
     ctx.fillRect(x + 1, 62, w - 2, 12);
     ctx.fillStyle = i === run.stageIndex ? PAL.cream : 'rgba(255,244,220,0.55)';
     ctx.font = `bold 12px ${FONT_UI}`;
-    ctx.fillText(s.short.toUpperCase(), x + w / 2, 94);
+    ctx.fillText(s.tag, x + w / 2, 94);
     if (run.medals[i]) drawMedal(ctx, x + w - 10, 68, 9, run.medals[i]);
     s0 += s.length;
   });

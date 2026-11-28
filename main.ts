@@ -2,7 +2,7 @@
 //
 // The game itself is the static folder game/ (index.html + ES modules, every picture drawn
 // in code on a <canvas>, every sound synthesised with WebAudio, no network request).
-// screenshots/ holds the four scenes listed in shots.json (title, run, last-feather danger,
+// screenshots/ holds the four scenes listed in shots.json (kitchen chase cover, title, barn hide,
 // escaped ending), rendered from game/src/shots.js by tools/take-shots.sh.
 // This program copies game/ and screenshots/ to the output directory and writes
 // dossier.json with the kit's unchanged vendor/makefun-game.ts library.

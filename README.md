@@ -6,11 +6,11 @@
 
 **Wattle's Moonlit Getaway** is a turkey escape game for the desktop browser. Wattle, a nervous
 slate-blue heritage turkey in a hand-knitted cranberry scarf, bolts from Farmer Mudge on the night
-before Thanksgiving: 1,220 metres through the Moonlit Pumpkin Patch, the Smokehouse Barn and the
-Farmhouse Kitchen, where the ovens flare and the carving knives hang low, to the Dawn Woods.
+before Thanksgiving: 1,460 metres out of the Turkey Coop, through the Moonlit Pumpkin Patch, the
+Smokehouse Barn and the Farmhouse Kitchen, where the ovens flare and the carving knives hang low, to the Dawn Woods.
 
 - **The lantern.** The farmer sweeps a storm lantern across the night. Stand in its light and the
-  SPOTTED meter fills; fill it and he sprints. Duck into a corn shock, a haystack or a pantry curtain
+  SPOTTED meter fills; fill it and he sprints. Duck into a woodpile, a corn shock, a haystack or a pantry curtain
   (↓) to vanish until the beam moves on.
 - **Corn decoys.** Click anywhere behind Wattle to toss a corn cob (5 corn): the farmer stops to eat
   it and his beam drops to the ground.

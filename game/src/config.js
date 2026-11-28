@@ -1,4 +1,4 @@
-// Tuning, palette and the three stages of the night. Everything else reads from here.
+// Tuning, palette and the four stages of the night. Everything else reads from here.
 
 export const VIEW_W = 1280;
 export const VIEW_H = 720;
@@ -71,40 +71,77 @@ export const TUNE = {
   nearMissPx: 26,
 };
 
-// The night runs left to right through three places, each harder than the last.
+// The night runs left to right through four places, from the farmyard coop to the kitchen,
+// each harder than the last: the farmer runs faster (farmerAdd), throws more often (throwRate),
+// and his lantern finds Wattle quicker (spotMul). `dim` is how dark the night sits over the stage.
 export const STAGES = [
+  {
+    id: 'coop',
+    name: 'The Turkey Coop',
+    short: 'Turkey Coop',
+    tag: 'COOP',
+    color: '#8fd3d1',
+    length: 240,
+    farmerLine: 'Rise and shine, Wattle! Big day!',
+    hazards: ['fence', 'feedTrough', 'clothesline', 'knifeThrow'],
+    cover: 'woodpile',
+    gapMin: 8,
+    gapMax: 13,
+    farmerAdd: -0.4,
+    throwRate: 0.7,
+    spotMul: 0.8,
+    dim: 0.3,
+  },
   {
     id: 'patch',
     name: 'The Moonlit Pumpkin Patch',
     short: 'Pumpkin Patch',
+    tag: 'PATCH',
+    color: '#e8732c',
     length: 380,
     farmerLine: 'Here, turkey turkey...',
-    hazards: ['pumpkin', 'wheelbarrow', 'knifeThrow', 'stringLights'],
+    hazards: ['pumpkin', 'wheelbarrow', 'knifeThrow', 'stringLights', 'fence'],
     cover: 'cornShock',
     gapMin: 7.5,
     gapMax: 12,
+    farmerAdd: 0,
+    throwRate: 0.85,
+    spotMul: 1,
+    dim: 0.32,
   },
   {
     id: 'barn',
     name: 'The Smokehouse Barn',
     short: 'Smokehouse Barn',
+    tag: 'BARN',
+    color: '#d9a74a',
     length: 400,
     farmerLine: 'I can smell those feathers!',
     hazards: ['hayBale', 'dutchOven', 'knifeThrow', 'beam', 'pumpkin'],
     cover: 'haystack',
     gapMin: 6.5,
     gapMax: 10.5,
+    farmerAdd: 0.6,
+    throwRate: 1.1,
+    spotMul: 1.25,
+    dim: 0.32,
   },
   {
     id: 'kitchen',
     name: 'The Farmhouse Kitchen',
     short: 'Farmhouse Kitchen',
+    tag: 'KITCHEN',
+    color: '#c8324b',
     length: 440,
     farmerLine: 'The oven is PREHEATED, Wattle!',
     hazards: ['oven', 'knifeRack', 'dutchOven', 'gravy', 'knifeThrow', 'rollingPin'],
     cover: 'pantryCurtain',
     gapMin: 5.8,
     gapMax: 9.5,
+    farmerAdd: 1.2,
+    throwRate: 1.35,
+    spotMul: 1.5,
+    dim: 0.18,
   },
 ];
 
@@ -112,10 +149,10 @@ export const TOTAL_LENGTH = STAGES.reduce((sum, s) => sum + s.length, 0);
 
 export const RANKS = [
   { min: 0, title: 'Drumstick Pending' },
-  { min: 900, title: 'Gravy Dodger' },
-  { min: 1800, title: 'Feather Duster' },
-  { min: 2800, title: 'Moonlight Bolter' },
-  { min: 3800, title: 'Presidential Pardon' },
+  { min: 1100, title: 'Gravy Dodger' },
+  { min: 2200, title: 'Feather Duster' },
+  { min: 3400, title: 'Moonlight Bolter' },
+  { min: 4600, title: 'Presidential Pardon' },
 ];
 
 export function rankFor(score) {

@@ -1,9 +1,10 @@
 // Things that help Wattle: corn to eat or throw, golden feathers that mend a life,
-// and cover (corn shocks, haystacks, pantry curtains) to hide in from the lantern.
+// and cover (woodpiles, corn shocks, haystacks, pantry curtains) to hide in from the lantern.
 
 import { PAL, GROUND_Y } from '../config.js';
 
 export const COVER_SPEC = {
+  woodpile: { w: 160, h: 120 },
   cornShock: { w: 150, h: 150 },
   haystack: { w: 170, h: 130 },
   pantryCurtain: { w: 150, h: 190 },
@@ -69,7 +70,35 @@ export function drawFeather(ctx, x, y, t) {
 export function drawCover(ctx, c, x, t, occupied) {
   const { w, h } = c.spec;
   const y = GROUND_Y;
-  if (c.kind === 'cornShock') {
+  if (c.kind === 'woodpile') {
+    // split logs stacked under a little tin roof, ends showing their rings
+    ctx.fillStyle = PAL.woodDark;
+    ctx.fillRect(x - w / 2, y - h, 8, h);
+    ctx.fillRect(x + w / 2 - 8, y - h, 8, h);
+    ctx.fillStyle = '#6f7d99';
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2 - 14, y - h);
+    ctx.lineTo(x + w / 2 + 14, y - h - 16);
+    ctx.lineTo(x + w / 2 + 14, y - h - 4);
+    ctx.lineTo(x - w / 2 - 14, y - h + 12);
+    ctx.fill();
+    for (let row = 0; row < 4; row++) {
+      for (let i = 0; i < 6; i++) {
+        const lx = x - w / 2 + 20 + i * 24 + (row % 2) * 10;
+        if (lx > x + w / 2 - 18) continue;
+        const ly = y - 14 - row * 24;
+        ctx.fillStyle = (i + row) % 3 ? '#b07a4a' : '#9a6838';
+        ctx.beginPath();
+        ctx.arc(lx, ly, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#6b3f2a';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(lx, ly, 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+  } else if (c.kind === 'cornShock') {
     for (let i = 0; i < 11; i++) {
       const lean = (i - 5) * 0.07 + Math.sin(t + i) * 0.02;
       ctx.save();

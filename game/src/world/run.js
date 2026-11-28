@@ -210,7 +210,7 @@ export function stepRun(run, dt, controls) {
   updateBeam(f, dt, target);
   const dist = Math.hypot(cx - origin.x, cy - origin.y);
   run.inBeam = !run.hidden && f.state !== 'distracted' && dist < BEAM_REACH && Math.abs(target - f.beamAngle) < BEAM_SPREAD;
-  if (run.inBeam) run.spotted += TUNE.spotRise * dt * (1 + run.stageIndex * 0.25);
+  if (run.inBeam) run.spotted += TUNE.spotRise * dt * STAGES[run.stageIndex].spotMul;
   else run.spotted -= (run.hidden ? TUNE.spotHideFall : TUNE.spotFall) * dt;
   run.spotted = Math.max(0, Math.min(1, run.spotted));
   if (run.spotted >= 1 && f.state !== 'sprint' && f.state !== 'lunge') {

@@ -1,7 +1,7 @@
 // Farmer Hollis Mudge's brain: how far behind he is, where his lantern points,
 // when he spots Wattle, when he sprints, throws a knife, falls for a corn decoy or grabs.
 
-import { TUNE } from '../config.js';
+import { TUNE, STAGES } from '../config.js';
 
 export function createFarmer() {
   return {
@@ -36,7 +36,7 @@ export function updateBeam(farmer, dt, targetAngle) {
 
 export function farmerSpeed(farmer, stageIndex, turkeySpeed) {
   if (farmer.state === 'distracted') return 0.6;
-  let v = TUNE.farmerBase + stageIndex * 0.6;
+  let v = TUNE.farmerBase + STAGES[stageIndex].farmerAdd;
   if (farmer.state === 'sprint' || farmer.state === 'lunge') v += TUNE.farmerSprintAdd;
   if (farmer.gap > 19) v = Math.max(v, turkeySpeed + 1.4); // he never falls hopelessly behind
   return v;
@@ -72,7 +72,7 @@ export function updateFarmer(farmer, dt, ctx) {
       farmer.windup -= dt;
       if (farmer.windup <= 0) ev.push({ type: 'throw', lane: farmer.windupLane });
     } else {
-      farmer.throwCooldown -= dt * (ctx.stageIndex >= 2 ? 1.35 : ctx.stageIndex === 1 ? 1.1 : 0.85);
+      farmer.throwCooldown -= dt * STAGES[ctx.stageIndex].throwRate;
       if (farmer.throwCooldown <= 0 && ctx.allowThrow && farmer.gap < 18) {
         farmer.windup = 0.75;
         farmer.windupLane = ctx.rng.chance(0.5) ? 'high' : 'low';

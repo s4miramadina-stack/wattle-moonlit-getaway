@@ -5,6 +5,9 @@ import { PAL, GROUND_Y } from '../config.js';
 
 // kind -> shape. lane: ground (jump it), overhead (duck it), slick (jump it or skid), fire (time it)
 export const HAZARD_SPEC = {
+  fence: { lane: 'ground', w: 84, h: 58, label: 'fence' },
+  feedTrough: { lane: 'ground', w: 100, h: 44, label: 'feed trough' },
+  clothesline: { lane: 'overhead', w: 190, h: 60, gap: 84, label: 'washing line' },
   pumpkin: { lane: 'ground', w: 62, h: 50, label: 'pumpkin' },
   wheelbarrow: { lane: 'ground', w: 96, h: 58, label: 'wheelbarrow' },
   hayBale: { lane: 'ground', w: 86, h: 66, label: 'hay bale' },
@@ -276,10 +279,94 @@ function drawGravy(ctx, x, y, w) {
   ctx.fill();
 }
 
+// A split-rail farmyard fence, freshly whitewashed for the holiday.
+function drawFence(ctx, x, y, w, h) {
+  ctx.fillStyle = '#d8d2c0';
+  for (const px of [x - w / 2 + 6, x + w / 2 - 14]) {
+    ctx.fillRect(px, y - h - 6, 10, h + 6);
+    ctx.beginPath();
+    ctx.moveTo(px, y - h - 6); ctx.lineTo(px + 5, y - h - 14); ctx.lineTo(px + 10, y - h - 6);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#b9b19a';
+  ctx.fillRect(x - w / 2, y - h + 8, w, 9);
+  ctx.fillRect(x - w / 2, y - h + 30, w, 9);
+  ctx.strokeStyle = 'rgba(11,15,36,0.5)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x - w / 2, y - h + 8, w, 9);
+  ctx.strokeRect(x - w / 2, y - h + 30, w, 9);
+}
+
+// A long wooden feed trough heaped with grain (and one suspicious bucket of brine).
+function drawFeedTrough(ctx, x, y, w, h) {
+  ctx.fillStyle = PAL.wood;
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2, y - h);
+  ctx.lineTo(x + w / 2, y - h);
+  ctx.lineTo(x + w / 2 - 10, y - 8);
+  ctx.lineTo(x - w / 2 + 10, y - 8);
+  ctx.fill();
+  ctx.fillStyle = PAL.woodDark;
+  ctx.fillRect(x - w / 2 + 12, y - 10, 8, 10);
+  ctx.fillRect(x + w / 2 - 20, y - 10, 8, 10);
+  ctx.fillStyle = PAL.wheat;
+  ctx.beginPath();
+  ctx.ellipse(x, y - h + 2, w / 2 - 6, 9, 0, Math.PI, 0);
+  ctx.fill();
+  ctx.fillStyle = '#9fb0d6';
+  ctx.fillRect(x + w / 2 - 34, y - h - 22, 22, 24);
+  ctx.fillStyle = PAL.ink;
+  ctx.font = 'bold 9px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('BRINE', x + w / 2 - 23, y - h - 6);
+}
+
+// A washing line between two posts, the farmer's long johns flapping at turkey head height.
+function drawClothesline(ctx, h, x, t) {
+  const s = h.spec;
+  const lineY = GROUND_Y - s.gap - s.h;
+  ctx.fillStyle = PAL.woodDark;
+  ctx.fillRect(x - s.w / 2 - 5, lineY - 20, 10, GROUND_Y - lineY + 20);
+  ctx.fillRect(x + s.w / 2 - 5, lineY - 20, 10, GROUND_Y - lineY + 20);
+  ctx.strokeStyle = '#e9dcc0';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x - s.w / 2, lineY);
+  ctx.quadraticCurveTo(x, lineY + 12, x + s.w / 2, lineY);
+  ctx.stroke();
+  const items = [['#c8324b', 34, 'johns'], ['#e9dcc0', 46, 'sheet'], ['#8fd3d1', 30, 'shirt'], ['#e8732c', 26, 'sock']];
+  let cx = x - s.w / 2 + 12;
+  items.forEach(([col, w, kind], i) => {
+    const flap = Math.sin(t * 5 + i * 1.7) * 5;
+    const top = lineY + 4 + 8 * Math.sin(((cx - x + s.w / 2) / s.w) * Math.PI);
+    const len = kind === 'sock' ? 30 : s.h - 2;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(cx, top);
+    ctx.lineTo(cx + w, top);
+    ctx.lineTo(cx + w + flap, top + len);
+    if (kind === 'johns') {
+      ctx.lineTo(cx + w / 2 + 4 + flap, top + len);
+      ctx.lineTo(cx + w / 2 + flap, top + len * 0.45);
+      ctx.lineTo(cx + w / 2 - 4 + flap, top + len);
+    }
+    ctx.lineTo(cx + flap, top + len);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(cx + 4, top - 4, 4, 8);
+    ctx.fillRect(cx + w - 8, top - 4, 4, 8);
+    cx += w + 8;
+  });
+}
+
 export function drawHazard(ctx, h, x, t) {
   const y = GROUND_Y;
   const s = h.spec;
   switch (h.kind) {
+    case 'fence': drawFence(ctx, x, y, s.w, s.h); break;
+    case 'feedTrough': drawFeedTrough(ctx, x, y, s.w, s.h); break;
+    case 'clothesline': drawClothesline(ctx, h, x, t); break;
     case 'pumpkin': drawPumpkin(ctx, x, y, s.w, s.h); break;
     case 'wheelbarrow': drawWheelbarrow(ctx, x, y, s.w, s.h); break;
     case 'hayBale': drawHayBale(ctx, x, y, s.w, s.h); break;

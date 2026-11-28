@@ -1,9 +1,10 @@
-// The screenshot scenes behind ?shot=title|run|danger|end&seed=N. Each one plays the real rules
+// The screenshot scenes behind ?shot=chase|title|hide|end&seed=N. Each one plays the real rules
 // forward from a fresh run with a small autopilot (jump ground hazards, duck overhead ones, wait
 // out oven flames, hide when the lantern finds Wattle), then holds that frame still, so the same
 // seed always gives the same picture of the game as it really plays.
 
-import { TURKEY_X, PX_PER_M, TOTAL_LENGTH, GROUND_Y } from './config.js';
+import { TURKEY_X, PX_PER_M, TOTAL_LENGTH, GROUND_Y, STAGES } from './config.js';
+import { createParticles } from './fx/particles.js';
 import { createRun, stepRun, screenX, tossDecoy } from './world/run.js';
 import { ovenFlaming, OVEN_CYCLE } from './world/hazards.js';
 
@@ -59,51 +60,91 @@ function simulate(run, seconds, { untilM = Infinity, keepLives = false } = {}) {
   return run;
 }
 
+// Where a stage begins, in metres from the coop.
+function stageStart(index) {
+  return STAGES.slice(0, index).reduce((sum, st) => sum + st.length, 0);
+}
+
+// Hold the frame still and readable: no leftover pops, banners, flashes or shake.
+function settle(run) {
+  run.fx = createParticles();
+  run.banner = 0;
+  run.medalFlash = 0;
+  run.invuln = 0;
+  run.shake = 0;
+  run.stun = 0;
+  run.slip = 0;
+  run.dashLeft = 0;
+}
+
+// Clear the stretch around Wattle so the picture shows one moment, not a pile-up.
+function clearAround(run, keep, before = 20, after = 32) {
+  for (const h of run.hazards) if (h !== keep && h.m > run.d - before && h.m < run.d + after) h.m = run.d - 60;
+  for (const p of run.pickups) if (p.m > run.d - before && p.m < run.d + after && !(keep && Math.abs(p.m - keep.m) < 0.5)) p.taken = true;
+  for (const c of run.covers) if (c.m > run.d - before && c.m < run.d + after) c.m = run.d - 60;
+}
+
 export function buildShot(name, seed) {
   if (name === 'title') return { screen: 'title', t: 4.2 };
-  if (name === 'run') {
+  if (name === 'chase') {
+    // the kitchen: Wattle leaps a low-thrown carving knife, the farmer sprints behind with
+    // his lantern locked on, and the oven ahead is mid-flame
     const run = daily(seed);
-    simulate(run, 26, { keepLives: true });
-    run.corn = Math.max(run.corn, 7);
-    run.decoyCooldown = 0;
-    tossDecoy(run, TURKEY_X - 300);
-    simulate(run, 0.3);
-    return { screen: 'play', run };
-  }
-  if (name === 'danger') {
-    const run = daily(seed);
-    simulate(run, 140, { untilM: 900, keepLives: true });
-    // stand Wattle just before the next oven of the kitchen, its flame up, a knife on its way
+    simulate(run, 200, { untilM: stageStart(3) + 60, keepLives: true });
     const oven = run.hazards.find((h) => h.kind === 'oven' && h.m > run.d + 6);
-    if (oven) {
-      run.d = oven.m - 8.2;
-      run.t = OVEN_CYCLE * 50 - oven.phase + 0.3;
-    }
-    for (const h of run.hazards) if (h.m < run.d + 30 && h.m > run.d - 2 && h !== oven) h.m = run.d - 40;
-    run.pickups.forEach((p) => { if (Math.abs(p.m - run.d) < 1.5) p.taken = true; });
-    const rack = run.hazards.find((h) => h.kind === 'knifeRack' || h.kind === 'beam');
-    if (rack) { rack.m = run.d + 0.4; rack.passed = true; }
-    run.lives = 1;
-    run.spotted = 0.93;
+    run.d = oven.m - 7.6;
+    run.t = OVEN_CYCLE * 60 - oven.phase + 0.35;
+    clearAround(run, oven);
+    settle(run);
+    run.stageIndex = 3;
+    run.lives = 2;
+    run.corn = 9;
+    run.spotted = 0.82;
     run.inBeam = true;
-    run.farmer.gap = 4.1;
-    run.heat = 0.85; // the farmer's breath: red vignette + heartbeat
+    run.heat = 0;
+    run.farmer.gap = 7;
     run.farmer.state = 'sprint';
     run.farmer.sprintLeft = 2;
-    run.farmer.beamAngle = -0.12;
+    run.farmer.windup = 0;
+    run.farmer.beamAngle = -0.2;
     run.farmer.line = 'The oven is PREHEATED, Wattle!';
     run.farmer.lineLeft = 2;
-    run.warnings = [];
-    run.knives = [{ x: TURKEY_X - 95, y: GROUND_Y - 108, lane: 'high', passed: false }];
-    run.warnings.push({ lane: 'high', life: 0.5 });
+    run.knives = [{ x: TURKEY_X - 70, y: GROUND_Y - 26, lane: 'low', passed: false }];
+    run.warnings = [{ lane: 'low', life: 0.5 }];
+    run.ducking = false;
+    run.hidden = false;
+    run.onGround = false;
+    run.ty = 104;
+    run.vy = -200;
+    return { screen: 'play', run };
+  }
+  if (name === 'hide') {
+    // the smokehouse barn: Wattle ducked into a haystack while the lantern sweeps right over it
+    const run = daily(seed);
+    simulate(run, 200, { untilM: stageStart(2) + 120, keepLives: true });
+    clearAround(run, null);
+    const stack = run.covers.find((c) => c.kind === STAGES[2].cover);
+    stack.m = run.d + 0.2;
+    settle(run);
+    run.stageIndex = 2;
+    run.lives = 3;
+    run.corn = 6;
+    run.hidden = true;
     run.ducking = true;
-    run.ty = 0;
-    run.vy = 0;
     run.onGround = true;
-    run.corn = 12;
-    run.banner = 0;
-    run.invuln = 0;
-    run.shake = 0;
+    run.ty = 0;
+    run.spotted = 0.38;
+    run.inBeam = false;
+    run.heat = 0;
+    run.knives = [];
+    run.warnings = [];
+    run.farmer.gap = 9.5;
+    run.farmer.state = 'search';
+    run.farmer.windup = 0;
+    run.farmer.beamAngle = 0.02;
+    run.farmer.line = 'Where did that bird go...';
+    run.farmer.lineLeft = 2;
+    run.fx.pops.push({ x: TURKEY_X + 10, y: GROUND_Y - 190, text: 'HIDDEN! +150', color: '#8fd3d1', size: 28, life: 0.9 });
     return { screen: 'play', run };
   }
   // end: a whole run played through to the Dawn Woods
